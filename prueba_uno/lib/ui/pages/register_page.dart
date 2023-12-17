@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:intl/intl.dart';
@@ -16,6 +17,8 @@ class RegisterPage extends StatefulWidget {
 class RegisterPageState extends State<RegisterPage> {
   final _formRegisterKey = GlobalKey<FormState>();
 
+  Future<void>? initDatabase;
+
   late TextEditingController _nombres;
   late TextEditingController _paterno;
   late TextEditingController _materno;
@@ -25,10 +28,11 @@ class RegisterPageState extends State<RegisterPage> {
   late TextEditingController _password;
   late TextEditingController _confirmationPassword;
 
-  late Database _database;
+  Database? _database;
 
-  Future<void> initDatabase() async {
-    String dbPath = 'assets/usuarios.db';
+  Future<void> _initDatabase() async {
+    var documentsDirectory = await getApplicationDocumentsDirectory();
+    String dbPath = join(documentsDirectory.path, 'usuarios.db');
 
     _database = await openDatabase(
       dbPath,
@@ -55,6 +59,7 @@ class RegisterPageState extends State<RegisterPage> {
 
   @override
   initState() {
+    initDatabase = _initDatabase();
     _nombres = TextEditingController(text: '');
     _paterno = TextEditingController(text: '');
     _materno = TextEditingController(text: '');
@@ -63,224 +68,244 @@ class RegisterPageState extends State<RegisterPage> {
     _telefono = TextEditingController(text: '');
     _password = TextEditingController(text: '');
     _confirmationPassword = TextEditingController(text: '');
-    initDatabase();
     super.initState();
   }
 
   @override
   void didChangeDependencies() {
-    initDatabase();
     super.didChangeDependencies();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-      ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        padding: const EdgeInsets.all(16),
-        color: Colors.white,
-        child: SingleChildScrollView(
-            child: Column(
-          children: [
-            Image.asset(
-              "assets/Planta.png",
-              width: 250,
-              height: 250,
-            ),
-            const SizedBox(
-              height: 25,
-            ),
-            const Text(
-              "Crea tu cuenta",
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.lightGreen),
-            ),
-            const SizedBox(
-              height: 8,
-            ),
-            Form(
-                key: _formRegisterKey,
-                child: Column(
-                  children: [
-                    TextFormField(
-                        controller: _nombres,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.person),
-                          hintText: 'Ej. María Carla',
-                          label: Text('Nombre(s)*'),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty || value == '') {
-                            return 'El campo nombre es obligatorio';
-                          }
-                          return null;
-                        }),
-                    const SizedBox(
-                      height: 8,
-                    ),
-                    Row(
-                      children: [
-                        Flexible(
-                          child: TextFormField(
-                              controller: _paterno,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: 'Ej. González',
-                                label: Text('Apellido Paterno*'),
-                              ),
-                              validator: (value) {
-                                if (value == null ||
-                                    value.isEmpty ||
-                                    value == '') {
-                                  return 'El campo apellido paterno es obligatorio';
-                                }
-                                return null;
-                              }),
-                        ),
-                        const SizedBox(
-                          height: 16,
-                          width: 8,
-                        ),
-                        Flexible(
-                          child: TextFormField(
-                              controller: _materno,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: 'Ej. Rodríguez',
-                                label: Text('Apellido Materno*'),
-                              ),
-                              validator: (value) {
-                                if (value == null ||
-                                    value.isEmpty ||
-                                    value == '') {
-                                  return 'El campo apellido materno es obligatorio';
-                                }
-                                return null;
-                              }),
-                        )
-                      ],
-                    ),
-                    const SizedBox(
-                      height: 8,
-                    ),
-                    TextFormField(
-                        controller: _email,
-                        decoration: const InputDecoration(
-                          border: OutlineInputBorder(),
-                          suffixIcon: Icon(Icons.email),
-                          hintText: 'Ej. usuario@gmail.com',
-                          label: Text('Email*'),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty || value == '') {
-                            return 'El campo email es obligatorio';
-                          }
-                          return null;
-                        }),
-                    const SizedBox(
-                      height: 8,
-                    ),
-                    TextFormField(
-                      controller: _nacimiento,
-                      decoration: const InputDecoration(
-                        suffixIcon: Icon(Icons.date_range),
-                        border: OutlineInputBorder(),
-                        label: Text('Fecha de nacimiento'),
+    return FutureBuilder(
+        future: initDatabase,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Text("Cargando");
+          } else {
+            if (_database != null) {
+              return Scaffold(
+                appBar: AppBar(
+                  backgroundColor: Colors.white,
+                ),
+                body: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  color: Colors.white,
+                  child: SingleChildScrollView(
+                      child: Column(
+                    children: [
+                      Image.asset(
+                        "assets/Planta.png",
+                        width: 250,
+                        height: 250,
                       ),
-                    ),
-                    const SizedBox(
-                      height: 8,
-                    ),
-                    TextFormField(
-                        controller: _telefono,
-                        decoration: const InputDecoration(
-                          suffixIcon: Icon(Icons.phone),
-                          border: OutlineInputBorder(),
-                          hintText: '442-186-9878',
-                          label: Text('Teléfono*'),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty || value == '') {
-                            return 'El campo de teléfono es obligatorio';
-                          }
-                          return null;
-                        }),
-                    const SizedBox(
-                      height: 8,
-                    ),
-                    //VOY AQUI
-                    Row(
-                      children: [
-                        Flexible(
-                          child: TextFormField(
-                              controller: _password,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                label: Text('Contraseña*'),
+                      const SizedBox(
+                        height: 25,
+                      ),
+                      const Text(
+                        "Crea tu cuenta",
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.lightGreen),
+                      ),
+                      const SizedBox(
+                        height: 8,
+                      ),
+                      Form(
+                          key: _formRegisterKey,
+                          child: Column(
+                            children: [
+                              TextFormField(
+                                  controller: _nombres,
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    suffixIcon: Icon(Icons.person),
+                                    hintText: 'Ej. María Carla',
+                                    label: Text('Nombre(s)*'),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null ||
+                                        value.isEmpty ||
+                                        value == '') {
+                                      return 'El campo nombre es obligatorio';
+                                    }
+                                    return null;
+                                  }),
+                              const SizedBox(
+                                height: 8,
                               ),
-                              validator: (value) {
-                                if (value == null ||
-                                    value.isEmpty ||
-                                    value == '') {
-                                  return 'El campo de contraseña es obligatorio';
-                                }
-                                return null;
-                              }),
-                        ),
-                        const SizedBox(
-                          height: 8,
-                          width: 8,
-                        ),
-                        Flexible(
-                          child: TextFormField(
-                              controller: _confirmationPassword,
-                              decoration: const InputDecoration(
-                                border: OutlineInputBorder(),
-                                hintText: 'Vuelva a escribir su contraseña',
-                                label: Text('Repita su contraseña*'),
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: TextFormField(
+                                        controller: _paterno,
+                                        decoration: const InputDecoration(
+                                          border: OutlineInputBorder(),
+                                          hintText: 'Ej. González',
+                                          label: Text('Apellido Paterno*'),
+                                        ),
+                                        validator: (value) {
+                                          if (value == null ||
+                                              value.isEmpty ||
+                                              value == '') {
+                                            return 'El campo apellido paterno es obligatorio';
+                                          }
+                                          return null;
+                                        }),
+                                  ),
+                                  const SizedBox(
+                                    height: 16,
+                                    width: 8,
+                                  ),
+                                  Flexible(
+                                    child: TextFormField(
+                                        controller: _materno,
+                                        decoration: const InputDecoration(
+                                          border: OutlineInputBorder(),
+                                          hintText: 'Ej. Rodríguez',
+                                          label: Text('Apellido Materno*'),
+                                        ),
+                                        validator: (value) {
+                                          if (value == null ||
+                                              value.isEmpty ||
+                                              value == '') {
+                                            return 'El campo apellido materno es obligatorio';
+                                          }
+                                          return null;
+                                        }),
+                                  )
+                                ],
                               ),
-                              validator: (value) {
-                                if (value == null ||
-                                    value.isEmpty ||
-                                    value == '') {
-                                  return 'Ambos campos de contrasñea son obligatorios';
-                                }
-                                if (value != _password.value.text) {
-                                  return 'Las contraseñas no concuerdan';
-                                }
-                                return null;
-                              }),
-                        )
-                      ],
-                    )
-                  ],
-                )),
-            const SizedBox(
-              height: 16,
-            ),
-            ElevatedButton(
-              onPressed: _insertData,
-              style: ButtonStyle(
-                minimumSize:
-                    MaterialStateProperty.all(const Size(double.infinity, 50)),
-                backgroundColor: MaterialStateProperty.all(Colors.lightGreen),
-                foregroundColor: MaterialStateProperty.all(
-                    Colors.black), // Establece el color del texto
-              ),
-              child: const Text("Crear cuenta"),
-            ),
-          ],
-        )),
-      ),
-    );
+                              const SizedBox(
+                                height: 8,
+                              ),
+                              TextFormField(
+                                  controller: _email,
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    suffixIcon: Icon(Icons.email),
+                                    hintText: 'Ej. usuario@gmail.com',
+                                    label: Text('Email*'),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null ||
+                                        value.isEmpty ||
+                                        value == '') {
+                                      return 'El campo email es obligatorio';
+                                    }
+                                    return null;
+                                  }),
+                              const SizedBox(
+                                height: 8,
+                              ),
+                              TextFormField(
+                                controller: _nacimiento,
+                                decoration: const InputDecoration(
+                                  suffixIcon: Icon(Icons.date_range),
+                                  border: OutlineInputBorder(),
+                                  label: Text('Fecha de nacimiento'),
+                                ),
+                              ),
+                              const SizedBox(
+                                height: 8,
+                              ),
+                              TextFormField(
+                                  controller: _telefono,
+                                  decoration: const InputDecoration(
+                                    suffixIcon: Icon(Icons.phone),
+                                    border: OutlineInputBorder(),
+                                    hintText: '442-186-9878',
+                                    label: Text('Teléfono*'),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null ||
+                                        value.isEmpty ||
+                                        value == '') {
+                                      return 'El campo de teléfono es obligatorio';
+                                    }
+                                    return null;
+                                  }),
+                              const SizedBox(
+                                height: 8,
+                              ),
+                              //VOY AQUI
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: TextFormField(
+                                        controller: _password,
+                                        decoration: const InputDecoration(
+                                          border: OutlineInputBorder(),
+                                          label: Text('Contraseña*'),
+                                        ),
+                                        validator: (value) {
+                                          if (value == null ||
+                                              value.isEmpty ||
+                                              value == '') {
+                                            return 'El campo de contraseña es obligatorio';
+                                          }
+                                          return null;
+                                        }),
+                                  ),
+                                  const SizedBox(
+                                    height: 8,
+                                    width: 8,
+                                  ),
+                                  Flexible(
+                                    child: TextFormField(
+                                        controller: _confirmationPassword,
+                                        decoration: const InputDecoration(
+                                          border: OutlineInputBorder(),
+                                          hintText:
+                                              'Vuelva a escribir su contraseña',
+                                          label: Text('Repita su contraseña*'),
+                                        ),
+                                        validator: (value) {
+                                          if (value == null ||
+                                              value.isEmpty ||
+                                              value == '') {
+                                            return 'Ambos campos de contrasñea son obligatorios';
+                                          }
+                                          if (value != _password.value.text) {
+                                            return 'Las contraseñas no concuerdan';
+                                          }
+                                          return null;
+                                        }),
+                                  )
+                                ],
+                              )
+                            ],
+                          )),
+                      const SizedBox(
+                        height: 16,
+                      ),
+                      ElevatedButton(
+                        onPressed: () async {
+                          await _insertData();
+                        },
+                        style: ButtonStyle(
+                          minimumSize: MaterialStateProperty.all(
+                              const Size(double.infinity, 50)),
+                          backgroundColor:
+                              MaterialStateProperty.all(Colors.lightGreen),
+                          foregroundColor: MaterialStateProperty.all(
+                              Colors.black), // Establece el color del texto
+                        ),
+                        child: const Text("Crear cuenta"),
+                      ),
+                    ],
+                  )),
+                ),
+              );
+            } else {
+              return Text("La base no se pudo inicializar");
+            }
+          }
+        });
   }
 
   Future<void> _insertData() async {
@@ -291,9 +316,9 @@ class RegisterPageState extends State<RegisterPage> {
         String formattedDate = DateFormat('yyyy-MM-dd').format(parsedDate);
 
         print(
-            'Database Path: ${_database.path}'); // Imprime la ruta de la base de datos
+            'Database Path: ${_database!.path}'); // Imprime la ruta de la base de datos
 
-        await _database.transaction((txn) async {
+        await _database!.transaction((txn) async {
           await txn.rawInsert('''
             INSERT INTO user (
               nombre, apellidoPaterno, apellidoMaterno,
@@ -310,6 +335,9 @@ class RegisterPageState extends State<RegisterPage> {
           ]);
         });
 
+        // Después de la inserción, selecciona y muestra los registros
+        await _selectData();
+
         ScaffoldMessenger.of(_formRegisterKey.currentContext!).showSnackBar(
           const SnackBar(
             content: Text('Cuenta creada exitosamente'),
@@ -325,6 +353,18 @@ class RegisterPageState extends State<RegisterPage> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _selectData() async {
+    try {
+      List<Map<String, dynamic>> results =
+          await _database!.rawQuery('SELECT * FROM user');
+      results.forEach((row) {
+        print('Registro: $row');
+      });
+    } catch (e) {
+      print('Error al seleccionar datos: $e');
     }
   }
 
